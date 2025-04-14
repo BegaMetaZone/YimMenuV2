@@ -5,12 +5,24 @@
 #include "game/frontend/items/Items.hpp"
 #include "game/gta/Natives.hpp"
 #include "imgui.h"
+#include <random>
+#include <format>
 
 namespace YimMenu::Submenus
 {
+	// Helper function for underlined text
+	static void TextUnderlined(const char* text)
+	{
+		ImGui::Text("%s", text);
+		ImVec2 min = ImGui::GetItemRectMin();
+		ImVec2 max = ImGui::GetItemRectMax();
+		min.y = max.y;
+		ImGui::GetWindowDrawList()->AddLine(min, max, ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_Text]));
+	}
+
 	std::shared_ptr<YimMenu::Category> OutfitEditor::CreateCategory()
 	{
-		auto category = std::make_shared<YimMenu::Category>("Edit Outfits and Props");
+		auto category = std::make_shared<YimMenu::Category>("Outfit Editor");
 
 		category->AddItem(std::make_shared<ImGuiItem>([] {
 			auto ped = Self::GetPed();
@@ -20,70 +32,141 @@ namespace YimMenu::Submenus
 				return;
 			}
 
-			// Outfit Slots
-			static const char* outfitSlotNames[] = {"Head", "Masks", "Hair", "Torso", "Legs", "Bags/Parachutes", "Shoes", "Accessories", "Undershirts", "Body Armor", "Decals", "Tops 2"};
-
-			for (int i = 0; i < 12; ++i)
+			if (ImGui::Button("Randomize Outfit"))
 			{
-				int drawable, texture;
-				OutfitEditor::GetOutfitSlot(i, drawable, texture);
+				std::random_device rd;
+				std::mt19937 gen(rd());
 
-				const int maxDrawable = OutfitEditor::GetMaxDrawable(i);
-				if (maxDrawable <= 0)
+				// Randomize components
+				for (int i = 0; i < 12; ++i)
 				{
-					ImGui::TextDisabled("%s (Slot %d): No options available", outfitSlotNames[i], i);
-					continue;
+					int maxDrawable = OutfitEditor::GetMaxDrawable(i);
+					if (maxDrawable > 0)
+					{
+						int drawable = std::uniform_int_distribution<>(0, maxDrawable - 1)(gen);
+						int maxTexture = OutfitEditor::GetMaxTexture(i, drawable);
+						int texture = maxTexture > 0 ? std::uniform_int_distribution<>(0, maxTexture - 1)(gen) : 0;
+						OutfitEditor::SetOutfitSlot(i, drawable, texture);
+					}
 				}
 
-				int maxTexture = OutfitEditor::GetMaxTexture(i, drawable);
+				// Randomize props
+				for (int i : {0, 1, 2, 6, 7})
+				{
+					int maxDrawable = OutfitEditor::GetMaxPropDrawable(i);
+					if (maxDrawable > 0)
+					{
+						int drawable = std::uniform_int_distribution<>(0, maxDrawable - 1)(gen);
+						int maxTexture = OutfitEditor::GetMaxPropTexture(i, drawable);
+						int texture = maxTexture > 0 ? std::uniform_int_distribution<>(0, maxTexture - 1)(gen) : 0;
+						OutfitEditor::SetPropSlot(i, drawable, texture);
+					}
+				}
+			}
 
-				ImGui::Text("%s (Slot %d)", outfitSlotNames[i], i);
-				if (ImGui::SliderInt(std::format("{} Drawable##{}", outfitSlotNames[i], i).c_str(), &drawable, 0, maxDrawable - 1))
+			// Two-column layout
+			const float windowWidth = ImGui::GetContentRegionAvail().x;
+			const float columnWidth = windowWidth / 2.0f - 5.0f;
+
+			ImGui::BeginGroup(); // Components column
+			TextUnderlined("Components");
+
+			// Components (left column)
+			const struct {
+				const char* name;
+				int slot;
+			} componentSlots[] = {
+				{"Top", 11}, // Tops 2
+				{"Undershirt", 8},
+				{"Legs", 4},
+				{"Feet", 6}, 
+				{"Accessories", 7},
+				{"Bags", 5},
+				{"Mask", 1},
+				{"Gloves", 3}, // Torso
+				{"Decals", 10},
+				{"Armor", 9}
+			};
+
+			for (const auto& component : componentSlots)
+			{
+				int drawable, texture;
+				OutfitEditor::GetOutfitSlot(component.slot, drawable, texture);
+
+				const int maxDrawable = OutfitEditor::GetMaxDrawable(component.slot);
+				if (maxDrawable <= 0) continue;
+
+				ImGui::Text("%s", component.name);
+				ImGui::SameLine(columnWidth / 2);
+                
+				ImGui::PushItemWidth(columnWidth / 2 - 5);
+				if (ImGui::InputInt(std::format("##{}Drawable", component.name).c_str(), &drawable, 0, 0))
 				{
 					drawable = std::clamp(drawable, 0, maxDrawable - 1);
-					OutfitEditor::SetOutfitSlot(i, drawable, texture);
-					maxTexture = OutfitEditor::GetMaxTexture(i, drawable);
+					OutfitEditor::SetOutfitSlot(component.slot, drawable, texture);
 				}
-				if (maxTexture > 0 && ImGui::SliderInt(std::format("{} Texture##{}", outfitSlotNames[i], i).c_str(), &texture, 0, maxTexture - 1))
+				ImGui::SameLine();
+				
+				int maxTexture = OutfitEditor::GetMaxTexture(component.slot, drawable);
+				if (ImGui::InputInt(std::format("##{}Texture", component.name).c_str(), &texture, 0, 0))
 				{
 					texture = std::clamp(texture, 0, maxTexture - 1);
-					OutfitEditor::SetOutfitSlot(i, drawable, texture);
+					OutfitEditor::SetOutfitSlot(component.slot, drawable, texture);
 				}
+				ImGui::PopItemWidth();
 			}
+			ImGui::EndGroup();
 
-			// Prop Slots
-			static const char* propNames[] = {"Hat", "Glasses", "Earrings", nullptr, nullptr, nullptr, "Watches", "Bracelets"};
+			ImGui::SameLine();
+			// Replace SeparatorEx with a custom vertical line
+			ImGui::GetWindowDrawList()->AddLine(
+				ImVec2(ImGui::GetCursorScreenPos().x, ImGui::GetWindowPos().y + ImGui::GetStyle().WindowPadding.y),
+				ImVec2(ImGui::GetCursorScreenPos().x, ImGui::GetWindowPos().y + ImGui::GetWindowSize().y - ImGui::GetStyle().WindowPadding.y),
+				ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_Separator]));
+			ImGui::SameLine();
 
-			for (int i : {0, 1, 2, 6, 7})
+			ImGui::BeginGroup(); // Props column
+			TextUnderlined("Props");
+
+			// Props (right column)
+			const struct {
+				const char* name;
+				int slot;
+			} propSlots[] = {
+				{"Hats", 0},
+				{"Glasses", 1},
+				{"Ears", 2},
+				{"Watches", 6}
+			};
+
+			for (const auto& prop : propSlots)
 			{
 				int drawable, texture;
-				OutfitEditor::GetPropSlot(i, drawable, texture);
+				OutfitEditor::GetPropSlot(prop.slot, drawable, texture);
 
-				const int maxDrawable = OutfitEditor::GetMaxPropDrawable(i);
-				if (maxDrawable <= 0)
+				const int maxDrawable = OutfitEditor::GetMaxPropDrawable(prop.slot);
+				if (maxDrawable <= 0) continue;
+
+				ImGui::Text("%s", prop.name);
+				ImGui::SameLine(columnWidth / 2);
+                
+				ImGui::PushItemWidth(columnWidth / 2 - 5);
+				if (ImGui::InputInt(std::format("##{}Drawable", prop.name).c_str(), &drawable, 0, 0))
 				{
-					ImGui::TextDisabled("%s (Slot %d): No options available", propNames[i], i);
-					continue;
+					drawable = std::clamp(drawable, 0, maxDrawable - 1);
+					OutfitEditor::SetPropSlot(prop.slot, drawable, texture);
 				}
-
-				int maxTexture = OutfitEditor::GetMaxPropTexture(i, drawable);
-
-				if (propNames[i]) // Skip nullptr entries
+				ImGui::SameLine();
+				
+				int maxTexture = OutfitEditor::GetMaxPropTexture(prop.slot, drawable);
+				if (ImGui::InputInt(std::format("##{}Texture", prop.name).c_str(), &texture, 0, 0))
 				{
-					ImGui::Text("%s (Slot %d)", propNames[i], i);
-					if (ImGui::SliderInt(std::format("{} Drawable##{}", propNames[i], i).c_str(), &drawable, 0, maxDrawable - 1))
-					{
-						drawable = std::clamp(drawable, 0, maxDrawable - 1);
-						OutfitEditor::SetPropSlot(i, drawable, texture);
-						maxTexture = OutfitEditor::GetMaxPropTexture(i, drawable);
-					}
-					if (maxTexture > 0 && ImGui::SliderInt(std::format("{} Texture##{}", propNames[i], i).c_str(), &texture, 0, maxTexture - 1))
-					{
-						texture = std::clamp(texture, 0, maxTexture - 1);
-						OutfitEditor::SetPropSlot(i, drawable, texture);
-					}
+					texture = std::clamp(texture, 0, maxTexture - 1);
+					OutfitEditor::SetPropSlot(prop.slot, drawable, texture);
 				}
+				ImGui::PopItemWidth();
 			}
+			ImGui::EndGroup();
 		}));
 
 		return category;
