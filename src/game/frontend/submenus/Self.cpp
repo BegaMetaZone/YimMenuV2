@@ -86,7 +86,7 @@ namespace YimMenu::Submenus
 		vehicle->AddItem(vehicleMiscGroup);
 		AddCategory(std::move(vehicle));
 
-		auto outfitEditorCategory = OutfitEditor::CreateCategory();
+		auto outfitEditorCategory = YimMenu::CreateOutfitsMenu();
 		AddCategory(std::move(outfitEditorCategory));
 	}
 }
