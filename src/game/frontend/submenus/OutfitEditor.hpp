@@ -1,5 +1,5 @@
 #pragma once
-#include "core/frontend/items/Category.hpp"
+#include "core/frontend/manager/Category.hpp"
 
 namespace YimMenu
 {
