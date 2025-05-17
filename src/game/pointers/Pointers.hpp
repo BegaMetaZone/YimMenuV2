@@ -135,6 +135,15 @@ namespace YimMenu
 		Functions::GetPresenceAttributes GetPresenceAttributes;
 		Functions::GetAvatars GetAvatars;
 		std::uint32_t* NetworkTime;
+		std::uint32_t* GameTimer;
+		PVOID FormatIntCaller1;
+		PVOID FormatIntCaller2;
+		BytePatch ShouldNotTargetEntityPatch;
+		BytePatch GetAssistedAimTypePatch;
+		BytePatch GetLockOnPosPatch;
+		BytePatch ShouldAllowDriverLockOnPatch;
+		BytePatch AllowPausingInSessionPatch;
+		PVOID OpenPauseMenu;
 	};
 
 	struct Pointers : PointerData

@@ -184,7 +184,7 @@ namespace YimMenu
 
 		constexpr auto worldModelSpawnBypassPtrn = Pattern<"4C 8B 2C 01 4D 85 ED 0F 84 ? ? ? ?">("WorldModelSpawnBypass");
 		scanner.Add(worldModelSpawnBypassPtrn, [this](PointerCalculator ptr) {
-			WorldModelSpawnBypass = BytePatches::Add(ptr.Add(4).As<void*>(), std::vector<std::uint8_t>{0xEB, 0x12, 0x90});
+			WorldModelSpawnBypass = BytePatches::Add(ptr.Add(4).As<void*>(), std::to_array<std::uint8_t>({0xEB, 0x12, 0x90}));
 		});
 
 		constexpr auto receiveNetMessagePtrn = Pattern<"48 81 C1 00 03 00 00 4C 89 E2">("ReceiveNetMessage");
@@ -239,7 +239,7 @@ namespace YimMenu
 
 		constexpr auto netArrayCachedDataPatchPtrn = Pattern<"0F 84 64 FE FF FF FF">("NetArrayCachedDataPatch");
 		scanner.Add(netArrayCachedDataPatchPtrn, [this](PointerCalculator ptr) {
-			NetArrayCachedDataPatch = BytePatches::Add(ptr.As<void*>(), std::vector<std::uint8_t>{0xE9, 0x65, 0xFE, 0xFF, 0xFF, 0x90});
+			NetArrayCachedDataPatch = BytePatches::Add(ptr.As<void*>(), std::to_array<std::uint8_t>({0xE9, 0x65, 0xFE, 0xFF, 0xFF, 0x90}));
 		});
 
 		constexpr auto statsMgrPtrn = Pattern<"89 6C 24 28 48 8D 0D ? ? ? ? 48 8D">("CStatsMgr");
@@ -308,6 +308,51 @@ namespace YimMenu
 			NetworkTime = ptr.Add(2).Rip().As<std::uint32_t*>();
 		});
 
+		constexpr auto gameTimerPtrn = Pattern<"3B 2D ? ? ? ? 76">("GameTimer");
+		scanner.Add(gameTimerPtrn, [this](PointerCalculator ptr) {
+			GameTimer = ptr.Add(2).Rip().As<std::uint32_t*>();
+		});
+
+		constexpr auto formatIntCaller1Ptrn = Pattern<"48 89 35 ? ? ? ? 48 8B 74 24">("FormatIntCaller1");
+		scanner.Add(formatIntCaller1Ptrn, [this](PointerCalculator ptr) {
+			FormatIntCaller1 = ptr.Add(0x5D).As<PVOID>();
+		});
+
+		constexpr auto formatIntCaller2Ptrn = Pattern<"48 B8 20 73 69 7A 65 3D 27 32 48 89 84 24">("FormatIntCaller2");
+		scanner.Add(formatIntCaller2Ptrn, [this](PointerCalculator ptr) {
+			FormatIntCaller2 = ptr.Sub(0x11).As<PVOID>();
+		});
+
+		constexpr auto shouldTargetEntityPatchPtrn = Pattern<"F6 80 A9 14 00 00 01">("ShouldNotTargetEntityPatch");
+		scanner.Add(shouldTargetEntityPatchPtrn, [this](PointerCalculator ptr) {
+			ShouldNotTargetEntityPatch = BytePatches::Add(ptr.Sub(0x53).As<void*>(), std::to_array<std::uint8_t>({0xB0, 0x00, 0xC3}));
+		});
+
+		constexpr auto getAssistedAimTypePatchPtrn = Pattern<"FF E0 48 8D 86">("GetAssistedAimTypePatch");
+		scanner.Add(getAssistedAimTypePatchPtrn, [this](PointerCalculator ptr) {
+			GetAssistedAimTypePatch = BytePatches::Add(ptr.Sub(0x15).As<void*>(), std::to_array<std::uint8_t>({0xBD, 0x01, 0x00, 0x00, 0x00}));
+		});
+
+		constexpr auto getLockOnPosPatchPtrn = Pattern<"0F 29 74 24 ? 48 89 D6 48 89 CF 48 8B 05">("GetLockOnPosPatch");
+		scanner.Add(getLockOnPosPatchPtrn, [this](PointerCalculator ptr) {
+			GetLockOnPosPatch = BytePatches::Add(ptr.Add(0x22).As<std::uint8_t*>(), 0xEB);
+		});
+
+		constexpr auto shouldAllowDriverLockOnPatchPtrn = Pattern<"75 ? 45 89 C7 49 89 CE">("ShouldAllowDriverLockOnPatch");
+		scanner.Add(shouldAllowDriverLockOnPatchPtrn, [this](PointerCalculator ptr) {
+			ShouldAllowDriverLockOnPatch = BytePatches::Add(ptr.Sub(0x2C).As<std::uint8_t*>(), std::to_array<std::uint8_t>({0xB0, 0x01, 0xC3}));
+		});
+
+		constexpr auto allowPausingInSessionPatchPtrn = Pattern<"80 88 ? ? ? ? ? EB ? E8">("AllowPausingInSessionPatch");
+		scanner.Add(allowPausingInSessionPatchPtrn, [this](PointerCalculator ptr) {
+			AllowPausingInSessionPatch = BytePatches::Add(ptr.Sub(0x1E).As<std::uint8_t*>(), 0xEB);
+		});
+
+		constexpr auto openPauseMenuPtrn = Pattern<"E9 ? ? ? ? B9 30 09 09 21">("OpenPauseMenu");
+		scanner.Add(openPauseMenuPtrn, [this](PointerCalculator ptr) {
+			OpenPauseMenu = ptr.Add(1).Rip().As<PVOID>();
+		});
+
 		if (!scanner.Scan())
 		{
 			LOG(FATAL) << "Some patterns could not be found, unloading.";
@@ -349,15 +394,15 @@ namespace YimMenu
 
 		constexpr auto readAttributePatchPtrn = Pattern<"75 70 EB 23">("ReadAttributesPatch");
 		scanner.Add(readAttributePatchPtrn, [this](PointerCalculator ptr) {
-			BytePatches::Add(ptr.As<void*>(), std::vector<std::uint8_t>{0x90, 0x90})->Apply();
+			BytePatches::Add(ptr.As<void*>(), std::to_array<std::uint8_t>({0x90, 0x90}))->Apply();
 		});
 
 		constexpr auto readAttributePatch2Ptrn = Pattern<"32 C0 EB ? C7 83">("ReadAttributesPatch2");
 		scanner.Add(readAttributePatch2Ptrn, [this](PointerCalculator ptr) {
-			BytePatches::Add(ptr.As<void*>(), std::vector<std::uint8_t>{0xB0, 0x01})->Apply(); 
+			BytePatches::Add(ptr.As<void*>(), std::to_array<std::uint8_t>({0xB0, 0x01}))->Apply(); 
 		});
 
-		constexpr auto getAvatarsPtrn = Pattern<"89 4B 7C 48 8B CB E8 ? ? ? ? 84 C0">("GetAvatars");
+		constexpr auto getAvatarsPtrn = Pattern<"89 4E 7C 48 8B CE E8 ? ? ? ? 84 C0">("GetAvatars");
 		scanner.Add(getAvatarsPtrn, [this](PointerCalculator ptr) {
 			GetAvatars = ptr.Add(6).Add(1).Rip().As<Functions::GetAvatars>();
 		});
