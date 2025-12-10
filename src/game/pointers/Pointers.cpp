@@ -173,10 +173,10 @@ namespace YimMenu
 			RequestControl = ptr.Add(5).Add(1).Rip().As<Functions::RequestControl>();
 		});
 
-		/*constexpr auto spectatePatchPtrn = Pattern<"74 26 66 83 FF 0D 77 20 0F B7 C7">("SpectatePatch");
+		constexpr auto spectatePatchPtrn = Pattern<"74 2A 66 83 FF 0D 77 24 0F B7 C7">("SpectatePatch");
 		scanner.Add(spectatePatchPtrn, [this](PointerCalculator ptr) {
 			SpectatePatch = BytePatches::Add(ptr.As<std::uint8_t*>(), 0xEB);
-		});*/
+		});
 
 		constexpr auto modelSpawnBypassPtrn = Pattern<"E8 ? ? ? ? 48 8B 78 48">("ModelSpawnBypass");
 		scanner.Add(modelSpawnBypassPtrn, [this](PointerCalculator ptr) {
