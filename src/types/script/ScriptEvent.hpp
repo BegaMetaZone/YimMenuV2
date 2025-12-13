@@ -166,19 +166,20 @@ struct SCRIPT_EVENT_SEND_TO_INTERIOR : public SCRIPT_EVENT
 {
 	REGISTER_SCRIPT_EVENT(SCRIPT_EVENT_SEND_TO_INTERIOR, InteriorControl);
 
-	SCR_INT Interior;
-	PLAYER_INDEX Owner;
-	SCR_BOOL GoonsOnly;
-	SCR_BOOL EnterOwnerInterior;
-	SCR_VEC3 Position;
-	SCR_BOOL PAD_0010;
-	SCR_INT InstanceId;
-	SCR_INT PAD_0012;
-	SCR_INT Distance;
-	SCR_BOOL PAD_0014;
-	SCR_INT SubInstanceId;
+	SCR_INT Interior;        
+	PLAYER_INDEX Owner;       
+	SCR_BOOL GoonsOnly;       
+	SCR_BOOL EnterOwnerInterior; 
+	SCR_VEC3 Position;          
+	SCR_BOOL UnknownBool1;    
+	SCR_INT InstanceId;        
+	PLAYER_INDEX SubInstanceId;  
+	SCR_INT Distance;           
+	SCR_INT UnknownInt1;        
+	SCR_BOOL SomeFlag;          
+	SCR_INT PAD_0014;          
 };
-static_assert(sizeof(SCRIPT_EVENT_SEND_TO_INTERIOR) == 16 * 8);
+static_assert(sizeof(SCRIPT_EVENT_SEND_TO_INTERIOR) == 17 * 8);
 
 struct SCRIPT_EVENT_SEND_TO_PROPERTY : public SCRIPT_EVENT
 {
